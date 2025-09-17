@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>raspiCamSrv API Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='w3.css') }}">
+    <style>
+        :root {
+            color-scheme: light;
+            --brand: #0b5790;
+            --accent: #0f7bbd;
+            --bg: #eef3f9;
+            --card-bg: #ffffff;
+            --border: #c9d7e6;
+            --text: #1a2c43;
+            --danger: #c0392b;
+            --success: #2d8659;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        header {
+            background: var(--brand);
+            color: #fff;
+            padding: 1.4rem 2rem;
+            box-shadow: 0 6px 18px rgba(9, 41, 68, 0.28);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+        header p {
+            margin: 0.35rem 0 0;
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+        main {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            align-items: start;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 18px 38px rgba(10, 47, 84, 0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 0;
+        }
+        .card h2 {
+            margin: 0;
+            color: var(--brand);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            font-size: 0.9rem;
+            color: #31465f;
+        }
+        .field span {
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .field input,
+        .field textarea {
+            font: inherit;
+            padding: 0.58rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8fbff;
+            color: inherit;
+            resize: vertical;
+            min-height: 2.4rem;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+        .field input:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(15, 123, 189, 0.18);
+            background: #fff;
+        }
+        .field textarea {
+            min-height: 3.2rem;
+            font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .actions,
+        .button-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+        .button-grid.vertical {
+            flex-direction: column;
+        }
+        button {
+            font: inherit;
+            padding: 0.58rem 1.15rem;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            background: var(--brand);
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        button:hover:not(:disabled) {
+            background: var(--accent);
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background: #c5d6e8;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button.secondary {
+            background: #5e6f84;
+        }
+        button.secondary:hover:not(:disabled) {
+            background: #4f5d6f;
+        }
+        button.danger {
+            background: var(--danger);
+        }
+        button.danger:hover:not(:disabled) {
+            background: #a83224;
+        }
+        .status-line {
+            font-size: 0.92rem;
+            color: #456280;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .status-line .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem 0.75rem;
+            border-radius: 999px;
+            background: #e1edf8;
+            color: #1e3a58;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .token-grid textarea {
+            min-height: 4.4rem;
+        }
+        .log-section {
+            grid-column: 1 / -1;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .log-list {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 0.85rem;
+            max-height: 380px;
+            overflow: auto;
+            padding-right: 0.4rem;
+        }
+        .log-entry {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.8rem 0.95rem;
+            background: #fdfefe;
+            box-shadow: inset 0 0 0 1px rgba(11, 87, 144, 0.05);
+        }
+        .log-entry.success {
+            border-color: rgba(46, 153, 101, 0.45);
+        }
+        .log-entry.error {
+            border-color: rgba(192, 57, 43, 0.6);
+        }
+        .log-entry.muted {
+            opacity: 0.65;
+        }
+        .log-entry header {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #223651;
+            margin-bottom: 0.55rem;
+        }
+        .log-entry pre {
+            margin: 0;
+            background: #f5f8fc;
+            padding: 0.65rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            max-height: 220px;
+            overflow: auto;
+        }
+        .probe-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .probe-box textarea {
+            min-height: 6.5rem;
+        }
+        .helper-text {
+            font-size: 0.78rem;
+            color: #60758f;
+        }
+        @media (max-width: 720px) {
+            header {
+                padding: 1.2rem 1.4rem;
+            }
+            main {
+                padding: 1.4rem;
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>raspiCamSrv &mdash; consola API</h1>
+        <p>Controla la cámara a través del API REST sin depender del layout clásico.</p>
+    </header>
+    <main>
+        <section class="card" id="auth-card">
+            <h2>Sesión</h2>
+            <form id="login-form">
+                <div class="form-grid">
+                    <label class="field">
+                        <span>Base URL del servicio</span>
+                        <input type="text" id="base-url" placeholder="http://raspberrypi:5000" autocomplete="url" required>
+                    </label>
+                    <label class="field">
+                        <span>Usuario</span>
+                        <input type="text" id="username" autocomplete="username" required>
+                    </label>
+                    <label class="field">
+                        <span>Contraseña</span>
+                        <input type="password" id="password" autocomplete="current-password" required>
+                    </label>
+                </div>
+                <div class="actions">
+                    <button type="submit" id="login-btn">Iniciar sesión</button>
+                    <button type="button" id="refresh-btn" class="secondary" disabled>Refrescar token</button>
+                    <button type="button" id="logout-btn" class="secondary" disabled>Cerrar sesión</button>
+                </div>
+            </form>
+            <div class="token-grid">
+                <label class="field">
+                    <span>Access token</span>
+                    <textarea id="access-token" readonly spellcheck="false"></textarea>
+                </label>
+                <label class="field">
+                    <span>Refresh token</span>
+                    <textarea id="refresh-token" readonly spellcheck="false"></textarea>
+                </label>
+            </div>
+            <div class="status-line">
+                <span id="session-status">No autenticado</span>
+                <span class="badge" id="auth-indicator">offline</span>
+            </div>
+        </section>
+
+        <section class="card" id="capture-card">
+            <h2>Captura inmediata</h2>
+            <div class="button-grid">
+                <button type="button" id="btn-take-photo" data-requires-auth="true">Foto cámara 1</button>
+                <button type="button" id="btn-take-photo-2" data-requires-auth="true">Foto cámara 2</button>
+                <button type="button" id="btn-take-photo-both" data-requires-auth="true">Foto ambas cámaras</button>
+            </div>
+            <div class="button-grid">
+                <button type="button" id="btn-take-raw" data-requires-auth="true">Foto RAW cam 1</button>
+                <button type="button" id="btn-take-raw-2" data-requires-auth="true">Foto RAW cam 2</button>
+                <button type="button" id="btn-take-raw-both" data-requires-auth="true">RAW ambas cámaras</button>
+            </div>
+        </section>
+
+        <section class="card" id="video-card">
+            <h2>Video</h2>
+            <div class="form-grid">
+                <label class="field">
+                    <span>Duración (segundos, 0 = hasta detener)</span>
+                    <input type="number" id="video-duration" min="0" step="1" value="0">
+                </label>
+            </div>
+            <div class="button-grid">
+                <button type="button" id="btn-record-video" data-requires-auth="true">Grabar video cam 1</button>
+                <button type="button" id="btn-stop-video" data-requires-auth="true" class="secondary">Detener video cam 1</button>
+            </div>
+            <div class="button-grid">
+                <button type="button" id="btn-record-video-2" data-requires-auth="true">Grabar video cam 2</button>
+                <button type="button" id="btn-stop-video-2" data-requires-auth="true" class="secondary">Detener video cam 2</button>
+            </div>
+            <div class="button-grid">
+                <button type="button" id="btn-record-video-both" data-requires-auth="true">Grabar video ambas cámaras</button>
+                <button type="button" id="btn-stop-video-both" data-requires-auth="true" class="secondary">Detener video ambas</button>
+            </div>
+        </section>
+
+        <section class="card" id="trigger-card">
+            <h2>Detección y triggers</h2>
+            <div class="button-grid">
+                <button type="button" id="btn-start-trigger" data-requires-auth="true">Iniciar captura por movimiento/evento</button>
+                <button type="button" id="btn-stop-trigger" data-requires-auth="true" class="secondary">Detener captura por movimiento/evento</button>
+            </div>
+        </section>
+
+        <section class="card" id="info-card">
+            <h2>Información y utilidades</h2>
+            <div class="button-grid">
+                <button type="button" id="btn-info" data-requires-auth="true">Estado del servidor</button>
+                <button type="button" id="btn-protected" data-requires-auth="true">Endpoint protegido</button>
+                <button type="button" id="btn-switch-cameras" data-requires-auth="true">Cambiar cámara activa</button>
+            </div>
+            <div class="probe-box">
+                <label class="field">
+                    <span>Probe (JSON)</span>
+                    <textarea id="probe-payload" placeholder='[{"property": "CameraCfg().serverConfig"}]'></textarea>
+                </label>
+                <div class="actions">
+                    <button type="button" id="btn-probe" data-requires-auth="true">Ejecutar probe</button>
+                    <span class="helper-text">Envía la estructura esperada por <code>/api/probe</code>. Usa lista de objetos con la clave <code>property</code>.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card log-section" id="log-card">
+            <div class="log-header">
+                <h2>Actividad</h2>
+                <button type="button" id="btn-clear-log" class="secondary">Limpiar log</button>
+            </div>
+            <div class="log-list" id="log-list"></div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const state = {
+                baseUrl: window.location.origin,
+                accessToken: "",
+                refreshToken: "",
+                username: ""
+            };
+
+            const baseUrlInput = document.getElementById("base-url");
+            const usernameInput = document.getElementById("username");
+            const passwordInput = document.getElementById("password");
+            const loginForm = document.getElementById("login-form");
+            const loginBtn = document.getElementById("login-btn");
+            const refreshBtn = document.getElementById("refresh-btn");
+            const logoutBtn = document.getElementById("logout-btn");
+            const accessTokenField = document.getElementById("access-token");
+            const refreshTokenField = document.getElementById("refresh-token");
+            const sessionStatus = document.getElementById("session-status");
+            const authIndicator = document.getElementById("auth-indicator");
+            const logList = document.getElementById("log-list");
+            const videoDurationInput = document.getElementById("video-duration");
+            const probePayloadInput = document.getElementById("probe-payload");
+            const actionButtons = document.querySelectorAll('[data-requires-auth="true"]');
+
+            baseUrlInput.value = state.baseUrl;
+
+            function sanitizeBaseUrl(value) {
+                if (!value) {
+                    return window.location.origin;
+                }
+                try {
+                    const url = new URL(value, window.location.origin);
+                    const cleanPath = url.pathname.replace(/\/+$/, "");
+                    return `${url.origin}${cleanPath}`;
+                } catch (error) {
+                    console.warn("Base URL inválida, se mantiene el valor previo.");
+                    return state.baseUrl || window.location.origin;
+                }
+            }
+
+            function buildUrl(path) {
+                if (/^https?:\/\//i.test(path)) {
+                    return path;
+                }
+                const base = state.baseUrl.replace(/\/+$/, "");
+                if (path.startsWith("/")) {
+                    return `${base}${path}`;
+                }
+                return `${base}/${path}`;
+            }
+
+            function updateAuthState() {
+                const isAuthenticated = Boolean(state.accessToken);
+                accessTokenField.value = state.accessToken;
+                refreshTokenField.value = state.refreshToken;
+                sessionStatus.textContent = isAuthenticated
+                    ? `Sesión activa${state.username ? ` para ${state.username}` : ""}`
+                    : "No autenticado";
+                authIndicator.textContent = isAuthenticated ? "online" : "offline";
+                authIndicator.style.background = isAuthenticated ? "#d6f5e4" : "#e1edf8";
+                authIndicator.style.color = isAuthenticated ? "#1f5a36" : "#1e3a58";
+                refreshBtn.disabled = !state.refreshToken;
+                logoutBtn.disabled = !isAuthenticated;
+                actionButtons.forEach((btn) => {
+                    btn.disabled = !isAuthenticated;
+                });
+            }
+
+            function formatPayload(data) {
+                if (data === undefined || data === null) {
+                    return "null";
+                }
+                if (typeof data === "string") {
+                    return data;
+                }
+                try {
+                    return JSON.stringify(data, null, 2);
+                } catch (error) {
+                    return String(data);
+                }
+            }
+
+            function logEvent(label, result, options = {}) {
+                const { muted = false } = options;
+                const entry = document.createElement("article");
+                entry.className = `log-entry ${result.ok ? "success" : "error"}${muted ? " muted" : ""}`;
+
+                const header = document.createElement("header");
+                const timeSpan = document.createElement("span");
+                timeSpan.textContent = new Date().toLocaleTimeString();
+                const labelSpan = document.createElement("span");
+                labelSpan.textContent = label;
+                const statusSpan = document.createElement("span");
+                statusSpan.textContent = result.status ? `HTTP ${result.status}` : "Sin respuesta";
+                header.append(timeSpan, labelSpan, statusSpan);
+                entry.append(header);
+
+                const bodyPre = document.createElement("pre");
+                bodyPre.textContent = formatPayload(result.data);
+                entry.append(bodyPre);
+
+                logList.append(entry);
+                while (logList.children.length > 60) {
+                    logList.removeChild(logList.firstChild);
+                }
+            }
+
+            let refreshInFlight = null;
+            async function attemptRefresh() {
+                if (!state.refreshToken) {
+                    return false;
+                }
+                if (refreshInFlight) {
+                    return refreshInFlight;
+                }
+                refreshInFlight = (async () => {
+                    const result = await apiCall("/api/refresh", {
+                        method: "POST",
+                        skipAuth: true,
+                        tokenOverride: state.refreshToken,
+                        handle401: false
+                    });
+                    if (result.ok && result.data && result.data.access_token) {
+                        state.accessToken = result.data.access_token;
+                        updateAuthState();
+                        logEvent("Refresh token", result, { muted: true });
+                        return true;
+                    }
+                    state.accessToken = "";
+                    updateAuthState();
+                    logEvent("Refresh token fallido", result);
+                    return false;
+                })();
+                const outcome = await refreshInFlight;
+                refreshInFlight = null;
+                return outcome;
+            }
+
+            async function apiCall(path, options = {}) {
+                const {
+                    method = "GET",
+                    body = null,
+                    skipAuth = false,
+                    tokenOverride = null,
+                    headers = {},
+                    handle401 = true,
+                    attempt = 1
+                } = options;
+
+                const finalHeaders = new Headers(headers);
+                finalHeaders.set("Accept", "application/json");
+
+                let url = buildUrl(path);
+                let fetchBody;
+
+                if (body !== null && body !== undefined) {
+                    if (method === "GET" || method === "HEAD") {
+                        const params = new URLSearchParams();
+                        Object.entries(body).forEach(([key, value]) => {
+                            if (value === undefined || value === null || value === "") {
+                                return;
+                            }
+                            if (Array.isArray(value)) {
+                                value.forEach((item) => params.append(key, item));
+                            } else {
+                                params.append(key, value);
+                            }
+                        });
+                        const query = params.toString();
+                        if (query) {
+                            url += (url.includes("?") ? "&" : "?") + query;
+                        }
+                    } else {
+                        finalHeaders.set("Content-Type", "application/json");
+                        fetchBody = JSON.stringify(body);
+                    }
+                }
+
+                const token = skipAuth ? tokenOverride : (tokenOverride || state.accessToken);
+                if (token) {
+                    finalHeaders.set("Authorization", `Bearer ${token}`);
+                }
+
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method,
+                        headers: finalHeaders,
+                        body: fetchBody,
+                        credentials: "include"
+                    });
+                } catch (networkError) {
+                    return {
+                        ok: false,
+                        status: 0,
+                        data: {
+                            error: "Network error",
+                            detail: networkError.message
+                        }
+                    };
+                }
+
+                if (response.status === 401 && handle401 && !skipAuth && state.refreshToken && attempt === 1) {
+                    const refreshed = await attemptRefresh();
+                    if (refreshed) {
+                        return apiCall(path, { ...options, attempt: 2 });
+                    }
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (error) {
+                    const raw = await response.text();
+                    data = { raw };
+                }
+
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data
+                };
+            }
+
+            function getDurationSeconds() {
+                const value = Number.parseInt(videoDurationInput.value, 10);
+                if (Number.isFinite(value) && value > 0) {
+                    return value;
+                }
+                return 0;
+            }
+
+            function resetPasswordField() {
+                passwordInput.value = "";
+            }
+
+            function clearTokens(emitLog = true) {
+                state.accessToken = "";
+                state.refreshToken = "";
+                state.username = "";
+                updateAuthState();
+                if (emitLog) {
+                    logEvent("Cerrar sesión", { ok: true, status: 0, data: { message: "Tokens limpiados en el cliente" } });
+                }
+            }
+
+            baseUrlInput.addEventListener("change", () => {
+                state.baseUrl = sanitizeBaseUrl(baseUrlInput.value);
+                baseUrlInput.value = state.baseUrl;
+            });
+
+            loginForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                loginBtn.disabled = true;
+                state.baseUrl = sanitizeBaseUrl(baseUrlInput.value);
+                baseUrlInput.value = state.baseUrl;
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+                if (!username || !password) {
+                    sessionStatus.textContent = "Usuario y contraseña son obligatorios";
+                    loginBtn.disabled = false;
+                    return;
+                }
+
+                const result = await apiCall("/api/login", {
+                    method: "POST",
+                    body: { username, password },
+                    skipAuth: true
+                });
+
+                logEvent("Login", result);
+
+                if (result.ok) {
+                    state.accessToken = result.data && result.data.access_token ? result.data.access_token : "";
+                    state.refreshToken = result.data && result.data.refresh_token ? result.data.refresh_token : "";
+                    state.username = username;
+                    sessionStatus.textContent = `Sesión activa para ${username}`;
+                } else {
+                    sessionStatus.textContent = result.data && result.data.error
+                        ? `Error: ${result.data.error}`
+                        : "No fue posible autenticar";
+                    clearTokens(false);
+                }
+
+                updateAuthState();
+                resetPasswordField();
+                loginBtn.disabled = false;
+            });
+
+            refreshBtn.addEventListener("click", async () => {
+                refreshBtn.disabled = true;
+                const refreshed = await attemptRefresh();
+                refreshBtn.disabled = !state.refreshToken;
+                if (!refreshed) {
+                    sessionStatus.textContent = "No fue posible refrescar el access token";
+                }
+            });
+
+            logoutBtn.addEventListener("click", () => {
+                clearTokens(true);
+                sessionStatus.textContent = "Sesión cerrada";
+            });
+
+            async function callAndLog(label, path, options) {
+                const result = await apiCall(path, options);
+                logEvent(label, result);
+                return result;
+            }
+
+            document.getElementById("btn-take-photo").addEventListener("click", () => {
+                callAndLog("Foto cam 1", "/api/take_photo");
+            });
+            document.getElementById("btn-take-photo-2").addEventListener("click", () => {
+                callAndLog("Foto cam 2", "/api/take_photo2");
+            });
+            document.getElementById("btn-take-photo-both").addEventListener("click", () => {
+                callAndLog("Foto ambas", "/api/take_photo_both");
+            });
+            document.getElementById("btn-take-raw").addEventListener("click", () => {
+                callAndLog("Foto RAW cam 1", "/api/take_raw_photo");
+            });
+            document.getElementById("btn-take-raw-2").addEventListener("click", () => {
+                callAndLog("Foto RAW cam 2", "/api/take_raw_photo2");
+            });
+            document.getElementById("btn-take-raw-both").addEventListener("click", () => {
+                callAndLog("RAW ambas", "/api/take_raw_photo_both");
+            });
+
+            document.getElementById("btn-record-video").addEventListener("click", () => {
+                callAndLog("Video cam 1", "/api/record_video", {
+                    method: "POST",
+                    body: { duration: getDurationSeconds() }
+                });
+            });
+            document.getElementById("btn-stop-video").addEventListener("click", () => {
+                callAndLog("Detener video cam 1", "/api/stop_video");
+            });
+            document.getElementById("btn-record-video-2").addEventListener("click", () => {
+                callAndLog("Video cam 2", "/api/record_video2", {
+                    method: "POST",
+                    body: { duration: getDurationSeconds() }
+                });
+            });
+            document.getElementById("btn-stop-video-2").addEventListener("click", () => {
+                callAndLog("Detener video cam 2", "/api/stop_video2");
+            });
+            document.getElementById("btn-record-video-both").addEventListener("click", () => {
+                callAndLog("Video ambas", "/api/record_video_both", {
+                    method: "POST",
+                    body: { duration: getDurationSeconds() }
+                });
+            });
+            document.getElementById("btn-stop-video-both").addEventListener("click", () => {
+                callAndLog("Detener video ambas", "/api/stop_video_both");
+            });
+
+            document.getElementById("btn-start-trigger").addEventListener("click", () => {
+                callAndLog("Iniciar trigger", "/api/start_triggered_capture");
+            });
+            document.getElementById("btn-stop-trigger").addEventListener("click", () => {
+                callAndLog("Detener trigger", "/api/stop_triggered_capture");
+            });
+
+            document.getElementById("btn-info").addEventListener("click", () => {
+                callAndLog("Info", "/api/info");
+            });
+            document.getElementById("btn-protected").addEventListener("click", () => {
+                callAndLog("Protected", "/api/protected");
+            });
+            document.getElementById("btn-switch-cameras").addEventListener("click", () => {
+                callAndLog("Switch cameras", "/api/switch_cameras");
+            });
+            document.getElementById("btn-probe").addEventListener("click", () => {
+                let payloadText = probePayloadInput.value.trim();
+                if (!payloadText) {
+                    payloadText = "[{\"property\": \"CameraCfg().serverConfig\"}]";
+                    probePayloadInput.value = payloadText;
+                }
+                let payload;
+                try {
+                    payload = JSON.parse(payloadText);
+                } catch (error) {
+                    logEvent("Probe", {
+                        ok: false,
+                        status: 0,
+                        data: { error: "JSON inválido", detalle: error.message }
+                    });
+                    return;
+                }
+                const body = Array.isArray(payload) ? { properties: payload } : payload;
+                callAndLog("Probe", "/api/probe", {
+                    method: "POST",
+                    body
+                });
+            });
+
+            document.getElementById("btn-clear-log").addEventListener("click", () => {
+                logList.innerHTML = "";
+            });
+
+            updateAuthState();
+        })();
+    </script>
+</body>
+</html>

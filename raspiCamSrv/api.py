@@ -15,6 +15,7 @@ from raspiCamSrv.home import generateHistogram
 
 from raspiCamSrv.auth import login_required
 import logging
+import json
 
 # Try to import flask_jwt_extended to avoid errors when upgrading to V2.11 from earlier versions
 try:
@@ -26,6 +27,26 @@ except ImportError:
 bp = Blueprint("api", __name__)
 
 logger = logging.getLogger(__name__)
+
+
+def _json_payload():
+    """Return request JSON payload as dict when possible."""
+    payload = request.get_json(silent=True)
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+def _extract_duration():
+    """Extract duration parameter from JSON body or query string."""
+    data = _json_payload()
+    duration = data.get("duration")
+    if duration is None:
+        duration = request.args.get("duration", type=int)
+    try:
+        return int(duration)
+    except (TypeError, ValueError):
+        return 0
 
 @bp.route('/api/login', methods=['POST'])
 def login():
@@ -405,15 +426,16 @@ def switch_cameras():
         msg = "Camera switch successful"
         return jsonify(message=msg)
 
-@bp.route("/api/record_video", methods=["GET"])
+@bp.route("/api/record_video", methods=["GET", "POST"])
 @jwt_required()
 def record_video():
     logger.debug("Thread %s: In /api/record_video", get_ident())
-    data = request.get_json()
-    duration = 0
-    if "duration" in data:
-        duration = data.get("duration")
-    logger.debug("Thread %s: /api/record_video - requested duration: %s", get_ident(), duration)
+    duration = _extract_duration()
+    logger.debug(
+        "Thread %s: /api/record_video - requested duration: %s",
+        get_ident(),
+        duration,
+    )
 
     cfg = CameraCfg()
     cc = cfg.controls
@@ -466,16 +488,17 @@ def stop_video():
         msg = "No video recording in progress"
         return jsonify(message=msg), 500
 
-@bp.route("/api/record_video2", methods=["GET"])
+@bp.route("/api/record_video2", methods=["GET", "POST"])
 @jwt_required()
 def record_video2():
     logger.debug("Thread %s: In /api/record_video2", get_ident())
     if Camera().isCamera2Available():
-        data = request.get_json()
-        duration = 0
-        if "duration" in data:
-            duration = data.get("duration")
-        logger.debug("Thread %s: /api/record_video2 - requested duration: %s", get_ident(), duration)
+        duration = _extract_duration()
+        logger.debug(
+            "Thread %s: /api/record_video2 - requested duration: %s",
+            get_ident(),
+            duration,
+        )
 
         cfg = CameraCfg()
         cc = cfg.controls
@@ -529,16 +552,17 @@ def stop_video2():
         logger.error("stop_video2 - %s", msg)
         return jsonify(message=msg), 500
 
-@bp.route("/api/record_video_both", methods=["GET"])
+@bp.route("/api/record_video_both", methods=["GET", "POST"])
 @jwt_required()
 def record_video_both():
     logger.debug("Thread %s: In /api/record_video_both", get_ident())
     if Camera().isCamera2Available():
-        data = request.get_json()
-        duration = 0
-        if "duration" in data:
-            duration = data.get("duration")
-        logger.debug("Thread %s: /api/record_video_both - requested duration: %s", get_ident(), duration)
+        duration = _extract_duration()
+        logger.debug(
+            "Thread %s: /api/record_video_both - requested duration: %s",
+            get_ident(),
+            duration,
+        )
 
         cfg = CameraCfg()
         sc = cfg.serverConfig
@@ -714,17 +738,33 @@ def probeTerm(property):
         res = "Error : " + str(e)
     return res
 
-@bp.route("/api/probe", methods=["GET"])
+@bp.route("/api/probe", methods=["GET", "POST"])
 @jwt_required()
 def probe():
     logger.debug("Thread %s: In /api/probe", get_ident())
     if CameraCfg().serverConfig.useStereo == True:
         from raspiCamSrv.stereoCam import StereoCam
     result = {}
-    data = request.get_json()
-    if "properties" in data:
-        properties = data.get("properties")
-    else:
+    data = _json_payload()
+    properties = data.get("properties")
+    if properties is None:
+        raw_properties = request.args.get("properties")
+        if raw_properties:
+            try:
+                properties = json.loads(raw_properties)
+            except json.JSONDecodeError:
+                properties = raw_properties
+    if isinstance(properties, str):
+        properties = [{"property": properties}]
+    if isinstance(properties, list):
+        normalized = []
+        for entry in properties:
+            if isinstance(entry, str):
+                normalized.append({"property": entry})
+            elif isinstance(entry, dict) and "property" in entry:
+                normalized.append({"property": entry["property"]})
+        properties = normalized
+    if not properties:
         result["error"] = "No properties provided"
         return jsonify(result), 400
 
