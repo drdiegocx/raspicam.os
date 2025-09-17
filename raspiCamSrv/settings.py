@@ -628,8 +628,14 @@ def generate_token():
     los = getLoadConfigOnStart(cfgPath)
     result = {}
     sc.lastSettingsTab = "settingsapi"
+    access_token = None
     if request.method == "POST":
-        access_token = create_access_token(identity=g.user['username'])
+        if "flask-jwt-extended" not in current_app.extensions:
+            flash("JWT support is not active. Configure Settings/API and restart the server to enable token generation.")
+        elif not sc.API_active or not sc.jwtAuthenticationActive:
+            flash("API authentication is disabled. Complete the Settings/API configuration first.")
+        else:
+            access_token = create_access_token(identity=g.user['username'])
     return render_template("settings/main.html", sc=sc, tc=tc, cp=cp, cs=cs, los=los, access_token=access_token)
 
 @bp.route('/vbutton_dimensions', methods=("GET", "POST"))
