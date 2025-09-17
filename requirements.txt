@@ -1,0 +1,6 @@
+RPi.GPIO
+gpiozero
+Flask>=3,<4
+numpy
+matplotlib<3.8
+flask-jwt-extended
