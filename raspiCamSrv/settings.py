@@ -628,7 +628,7 @@ def generate_token():
     los = getLoadConfigOnStart(cfgPath)
     result = {}
     sc.lastSettingsTab = "settingsapi"
-    access_token = None
+    access_token = ""
     if request.method == "POST":
         if "flask-jwt-extended" not in current_app.extensions:
             flash("JWT support is not active. Configure Settings/API and restart the server to enable token generation.")
