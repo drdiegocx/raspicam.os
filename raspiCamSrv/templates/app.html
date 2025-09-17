@@ -253,7 +253,7 @@
         }
     </style>
 </head>
-<body>
+<body data-api-active="{{ 'true' if sc.API_active else 'false' }}">
     <header>
         <h1>raspiCamSrv &mdash; consola API</h1>
         <p>Controla la cámara a través del API REST sin depender del layout clásico.</p>
@@ -379,6 +379,8 @@
                 username: ""
             };
 
+            const isApiActive = document.body.dataset.apiActive === "true";
+
             const baseUrlInput = document.getElementById("base-url");
             const usernameInput = document.getElementById("username");
             const passwordInput = document.getElementById("password");
@@ -396,6 +398,18 @@
             const actionButtons = document.querySelectorAll('[data-requires-auth="true"]');
 
             baseUrlInput.value = state.baseUrl;
+
+            if (!isApiActive) {
+                loginBtn.disabled = true;
+                sessionStatus.textContent = "API desactivada. Configura JWT en raspiCamSrv y reinicia.";
+                authIndicator.textContent = "offline";
+                authIndicator.style.background = "#e1edf8";
+                authIndicator.style.color = "#1e3a58";
+                actionButtons.forEach((btn) => {
+                    btn.disabled = true;
+                });
+                return;
+            }
 
             function sanitizeBaseUrl(value) {
                 if (!value) {

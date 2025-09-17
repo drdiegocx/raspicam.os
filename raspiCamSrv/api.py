@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import check_password_hash
 from werkzeug.exceptions import abort
 from raspiCamSrv.db import get_db
@@ -50,6 +50,10 @@ def _extract_duration():
 
 @bp.route('/api/login', methods=['POST'])
 def login():
+    if "flask-jwt-extended" not in current_app.extensions:
+        return jsonify({
+            "error": "API JWT support not configured. Habilita los parámetros JWT en Settings/API e intenta de nuevo."
+        }), 503
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
