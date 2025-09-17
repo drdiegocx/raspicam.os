@@ -214,6 +214,17 @@ def trigger_autofocus():
             flash(msg)
     return render_template("home/index.html", cc=cc, sc=sc, cp=cp)
 
+
+@bp.route("/app")
+@bp.route("/app.html")
+def api_app():
+    """Serve the standalone API console when the API is enabled."""
+    cfg = CameraCfg()
+    sc = cfg.serverConfig
+    if not getattr(sc, "useAPI", False):
+        abort(404)
+    return render_template("app.html", sc=sc)
+
 @bp.route("/set_zoom", methods=("GET", "POST"))
 @login_required
 def set_zoom():
