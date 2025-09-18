@@ -125,6 +125,7 @@ def create_app(test_config=None):
     from . import settings
     cfg = camCfg.CameraCfg()
     sc = cfg.serverConfig
+    sc.useAPI = True
     sc.photoRoot = app.static_folder
     sc.prgOutputPath = prgOutPath
     sc.checkEnvironment()
